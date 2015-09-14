@@ -26,6 +26,10 @@ pcAlign <- function(x,y,optim=TRUE,subsample=NULL,iterations=10,mc.cores=2) UseM
 #' @rdname pcAlign
 #' @export
 pcAlign.matrix <- function(x, y,optim=TRUE,subsample=NULL,iterations=10, mc.cores=2) {
+    if (optim) {
+        pccmeshx <- VcgPrincipalCurvature(x)$meanvb
+        pccmeshy <- VcgPrincipalCurvature(y)$meanvb
+    }
     if (!missing(y)) {
         if (inherits(y,"mesh3d"))
             y <- vert2points(y)
@@ -73,11 +77,12 @@ pcAlign.matrix <- function(x, y,optim=TRUE,subsample=NULL,iterations=10, mc.core
                     xtmp1 <- icpmat(xtmp,y,iterations=iterations,subsample=subsample)
                     trafoicp <- computeTransform(xtmp1,xtmp)
                     trafotmp <- trafoicp%*%trafotmp
-                    disttmp <- mean(vcgKDtree(y,xtmp1[!subs,],k=1)$dist^2)
+                    closestptidx <- vcgKDtree(y,xtmp1[!subs,],k=1)$index
+                    distcurvtmp <- sum(abs(pccmeshx[!subs[closestptidx,],]-pccmeshy))
                 } else {
-                    disttmp <- mean(vcgKDtree(y,xtmp[!subs,],k=1)$dist^2)
+                    distcurvtmp <- sum(abs(pccmeshx[!subs,]-pccmeshy))
                 }
-                out <- list(dist=disttmp,trafo=trafotmp)
+                out <- list(dist=distcurvtmp,trafo=trafotmp)
             }
         
         if (optim) {
